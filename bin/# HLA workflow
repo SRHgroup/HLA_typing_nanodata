@@ -1,0 +1,44 @@
+# HLA workflow 
+https://github.com/kkotkowska/HLA_typing
+
+# KMA INDEX
+ kma index -i $genome -m 14 -o indexed/${genome.baseName}_indexed
+
+
+# demultiplexing
+demultiplex.py $reads $params.primers "${reads.baseName.replace('.fastq', '')}_demultiplexed_output"
+
+#kma typing
+kma -i $demultiplexed/${primer} -tmp -t_db $indexed -eq 10 -5p 20 -3p 20 -1t1 -bcNano -lc -proxi -0.98 -o 
+
+# sequence for exat matches
+extract_typed_sequences.py $namesFile $fsaFile ${namesFile.baseName.replace('_types_sorted_selected_names', '')}_matched_sequences.fasta
+- fsaFile consensus seqeunce 
+- namesFile namedseq sequnce
+
+# Final  mapping
+ kma -i ${geneType}_${fileName}_matched_sequences.fasta -tmp -t_db  $indexed -proxi -0.98 -o '${geneType}_${fileName}_results'
+
+# translate to 2 groups 
+translate_to_g.py --input_file $input_file --g_group_file $params.g_groups --output_file ${fileName}_translated.txt
+
+# print
+get_results_csv.py ${input_file} ${input_file.baseName}.csv
+
+
+
+#  run pipeline
+conda activate hla-env
+nextflow run workflow.nf --reads 'Nano_data/barcode01/HLA-A.fastq.gz' --out 'barcode01_HLA-A' -resume
+nextflow run workflow.nf --reads 'Nano_data/dat_test/barcode1_gather.fastq.gz' --out 'barcode01' -resume
+
+
+
+
+
+# grep HLA-A
+
+cat PAS38981_pass_barcode01_328f9b1f_9b8257af_0.fastq  | grep -A 2 -B 1 'GGATACTCACGACGCGGA' | grep -v "^--" > HLA-A.fastq
+cat PAS38981_pass_barcode01_328f9b1f_9b8257af_0.fastq  | grep -A 2 -B 1 'TTGCAGAAACAAAGTCAGGGT' | grep -v "^--" >> HLA-A.fastq
+cat PAS38981_pass_barcode01_bc757c48_03d9cca1_0.fastq  | grep -A 2 -B 1 'GGATACTCACGACGCGGA' | grep -v "^--" >> HLA-A.fastq
+cat PAS38981_pass_barcode01_bc757c48_03d9cca1_0.fastq  | grep -A 2 -B 1 'TTGCAGAAACAAAGTCAGGGT'| grep -v "^--"  >> HLA-A.fastq

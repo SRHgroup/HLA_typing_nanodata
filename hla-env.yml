@@ -1,0 +1,31 @@
+name: hla-env
+channels:
+  - defaults
+  - bioconda
+dependencies:
+  - biopython=1.78
+  - blas=1.0=openblas
+  - bzip2=1.0.8
+  - ca-certificates=2023.08.22
+  - libcxx=14.0.6
+  - libffi=3.4.4
+  - libopenblas=0.3.21
+  - llvm-openmp=14.0.6
+  - ncurses=6.4
+  - numpy=1.26.0
+  - numpy-base=1.26.0
+  - openssl=3.0.11
+  - pip=23.3
+  - python=3.10.13
+  - readline=8.2
+  - setuptools=68.0.0
+  - sqlite=3.41.2
+  - tk=8.6.12
+  - tzdata=2023c
+  - wheel=0.41.2
+  - xz=5.4.2
+  - zlib=1.2.13
+  - nextflow
+  - zlib
+  - regex
+
