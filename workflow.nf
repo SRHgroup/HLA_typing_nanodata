@@ -6,10 +6,10 @@ params.reads = "$projectDir/data/test_data/*fastq.gz"
 params.db = "$projectDir/data/hla/fasta/{A,B,C}_gen.fasta"
 // params.db_class2 = "$projectDir/data/hla/fasta/D*_nuc.fasta"
 params.db_class2 = "$projectDir/data/hla/fasta/D*_gen.fasta"
-params.primers = "$projectDir/data/primers/primers2.csv"
+params.primers = "$projectDir/data/primers/primers2_new.csv"
 params.outdir = "$projectDir/results/"
 params.g_groups = "$projectDir/data/hla_nom_g.txt"
-params.threshold = 0
+params.threshold = 0.5
 params.out = 'aggregated_results'
 
 log.info """\
@@ -181,7 +181,7 @@ process ExtractMatchingSequences {
     path("${namesFile.baseName.replace('_types_sorted_selected_names', '')}_matched_sequences.fasta")
 
     script:
-    // call extract_typed_sequences script with names, sequences, and a resulting file name
+    // call extract_typed_sequences script with names, 
     """
     extract_typed_sequences.py $namesFile $fsaFile ${namesFile.baseName.replace('_types_sorted_selected_names', '')}_matched_sequences.fasta
     """
@@ -189,7 +189,7 @@ process ExtractMatchingSequences {
 
 // Process for typing of the extracted sequences
 process FinalMapping {
-
+// sequences, and a resulting file name
     tag "${geneType}"
 
     input:
@@ -272,8 +272,6 @@ process TransformAndAggregateCSVs {
     """
 }
 
-
-
 workflow{
     // INDEXING
     indexed_ch = Channel.fromPath(params.db)
@@ -282,6 +280,7 @@ workflow{
         | map {it.get(2)}
         | map { indexed -> tuple(getGeneTypeFromName(indexed.baseName), indexed.toString().replace('.name','')) }
         // | view()
+    println file("${params.reads}")
 
     reads_ch = Channel
     .fromPath(params.reads)
@@ -295,9 +294,7 @@ workflow{
         }
         }
     // | view()
-    
-
-    // DEMULTIPLEXING
+        // DEMULTIPLEXING
     demultiplexed = Demultiplex(cleandata)
     demultiplexed_files_ch = demultiplexed.flatMap { dir ->
         dir.list().collect { file ->
@@ -310,14 +307,13 @@ workflow{
     .map{ key, fastq, dir, db -> [fastq, dir, db] }
     // | view()
 
-    // TYPING
+      // TYPING
     typing_res = Typing(typing_input)
     .map{ it -> tuple(getGeneAndSampleFromName(it[1].baseName), it[1], it[2]) }
     // mapped = typing_res.map { typed -> tuple(typed[0], typed[1]) }
     // | view()
 
-   
-    // EXTRACTING 3 BEST MATCHES FOR EACH LOCUS, DECIDING IF HOMO OR HETEROZYGOUS AND EXTRACTING THE MATCHED SEQUENCES
+      // EXTRACTING 3 BEST MATCHES FOR EACH LOCUS, DECIDING IF HOMO OR HETEROZYGOUS AND EXTRACTING THE MATCHED SEQUENCES
     sorted_typing_res = SortTypingResults(typing_res.map{it[0..1]})
     typing_res_from_comparison = CompareProportions(sorted_typing_res)
     // | view()
@@ -325,7 +321,7 @@ workflow{
     .map{ file -> tuple(getGeneAndSampleFromName(file.baseName), file) }
     // | view()
 
-    extraction_input = selected_records
+       extraction_input = selected_records
     .join(typing_res)
     .map{it.getAt([0,1,3])}
     // | view()
@@ -340,7 +336,7 @@ workflow{
     .combine(indexed_ch, by:0) // Combining with the HLA index path
     // | view()
 
-    // ensuring to have both - names of alleles and files
+     // ensuring to have both - names of alleles and files
     file_names_ch = matching_sequences_ch.map{ it -> 
         def splitted_name = it[1].baseName.toString().split('_', 2)
         return [splitted_name[0], splitted_name[1].replace('_matched_sequences.fasta', '')]
@@ -376,4 +372,6 @@ workflow{
     // COLLECTING ALL CSV FILES TO CREATE A SINGLE CSV WITH ALL THE RESULTS
     TransformAndAggregateCSVs(csv_files_ch.collect())
     // | view()
-}
+
+    }
+
