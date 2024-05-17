@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import regex
 
 
 def reverse_complement(sequence):
@@ -27,19 +28,33 @@ def find_primer_index_fast(sequence, primer, max_mismatches=2):
     return -1  # Primer not found
 
 
+def fuzzyMapFind(subSeq, sequence, subs=2):
+    pattern = "(?e)({}){{s<={}}}".format(subSeq, subs)
+    match = regex.search(pattern, sequence)
+    if match is None:
+        return -1
+    else:
+        return match.start()
 
-
-def findPrimerMatchesNested(forwardPrimers,sequence,quality,delta=1000):
+def findPrimerMatchesNested(forwardPrimers,sequence,quality,delta=500):
     reversePrimers  = [reverse_complement(fp) for fp in forwardPrimers]
     for fp in forwardPrimers:
-        fp_idx = find_primer_index_fast(sequence,fp)
+        #fp_idx = find_primer_index_fast(sequence,fp)
+        fp_idx = fuzzyMapFind(fp,sequence)
         for rp in reversePrimers:
-            rp_idx = find_primer_index_fast(sequence,rp)
+            #rp_idx = find_primer_index_fast(sequence,rp)
+            rp_idx = fuzzyMapFind(rp,sequence)
             if fp_idx >= 0 and rp_idx >= 0 and rp_idx-fp_idx>delta:
                 trimmed_sequence = sequence[fp_idx:rp_idx+len(fp)]
                 trimmed_quality = quality[fp_idx:rp_idx+len(fp)]
+                return (trimmed_sequence,trimmed_quality)
                 # Write the modified sequence entry to the output file
-                return (trimmed_sequence,trimmed_quality)                        
+                return (trimmed_sequence,trimmed_quality)     
+            elif fp_idx >= 0 and rp_idx < 0:
+                trimmed_sequence = sequence[fp_idx:len(sequence)]
+                trimmed_quality = quality[fp_idx:len(sequence)]
+                # Write the modified sequence entry to the output file
+                return (trimmed_sequence,trimmed_quality)                     
     return (None,None)
 
 
@@ -70,7 +85,9 @@ def trim_fastq(input_file, output_file, junkfile,countfile):
                 else:
                     locus_counts[loci]['no_matches'] += 1
                     junk.write(f"{header}\n{sequence}\n{plus_line}\n{quality}\n")
-                    outfile.write(f"{header}\n{sequence}\n{plus_line}\n{quality}\n")
+                   # outfile.write(f"{header}\n{sequence}\n{plus_line}\n{quality}\n")
+
+    # Print locus counts
 
 def read_primer_csv(file_path):
     primer_dict = {}
