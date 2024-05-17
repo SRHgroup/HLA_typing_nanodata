@@ -46,6 +46,7 @@ Pipeline for HLA typing based on Nanopore sequencing data.
 3. Start running your analysis!
     Run without parameters for a test.
     ```bash
-    nextflow run workflow.nf 
+    nextflow run workflow.nf
+    nextflow run workflow.nf --reads 'Nano_data/new_run/newdublex17.fastq' --primers data/primers/primers2_new.csv --out 'newdublex_barcode17'
     ```
 # HLA_typing_nanodata
